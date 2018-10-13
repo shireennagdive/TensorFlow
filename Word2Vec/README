@@ -1,0 +1,74 @@
+******************************* BEST MODELS *******************************
+NCE :
+Accuracy - 35.7%
+loss value - 1.19249
+
+CONFIGURATION :
+batch_size - 256
+skip_window - 4
+num_skips - 8
+embedding_size - 128
+max_num_steps - 200001
+learning rate - 0.1
+
+
+CROSS ENTROPY:
+Accuracy - 33.9%
+loss_value - 4.82678
+
+CONFIGURATION:
+batch_size - 256
+skip_window - 4
+num_skips - 8
+embedding_size - 128
+max_num_steps - 200001
+learning rate - 1.0
+
+
+****************************************************************************************************************************************************************
+
+Implemented the following functions:
+-- Generate Batch for skip-gram model in word2vec_basic.py
+-- Cross Entropy Loss
+-- Noise Contrastive Estimation
+
+Generate Batch for skip-gram model
+   -This function generates batch size and is used to train the model.
+    Inputs: data - whole corpus of vocabulary, batch_size - number of instances in one batch, skip_window - Words to consider left and right from a context word.
+   -Created a skip_window of size 2*num_skips + 1
+   -First for loop puts the positions of all words except the context word in a list named label_words.
+   -Second for loop puts the word id's of all words to the window list
+    -Third for loop runs for batch_size/num_skips number of times which computes the list - batch and labels. It contains a inner for loop which runs for num_skip number of times. It thus populates batch with word id of the context word accessed by window[skip_window] and label with word ids of predicting words accessed by window[label_words[l]]. After then, the I pop out the first element of the window and append the next word id and thus slide the window.
+
+   -In the last step, I reset the data_index to [(data_index + len(data) - window_size) % len(data)] as the next batch should start processing of words at the start as data_index is a global variable
+
+****************************************************************************************************************************************************************
+
+loss_func.py - Function called from word2vec_basic and comprises of two loss functions forming two models.
+
+    1.cross_entropy_loss(inputs, true_w)
+
+   -Inputs: inputs - Word embeddings for context words with dimension as [batch_size, embedding_size], true_w - Word embeddings for predicting    words with dimension as [batch_size, embedding_size].
+   -To calculate softmax_numerator, A = log(exp({u_o}^T v_c)), I performed dot product of inputs and true_w as {u_o}^T v_c = Sigma(u_oi*v_ci). After that, I performed a reduce sum operation which adds all columns and converts the matrix into a column vector of dimension [batch_size,1].I then take exponential of this function followed by the logarithm function
+   -Added 1e-10 in log to avoid log(0) condition.
+   -Function returns tf.subtract(B,A) which subtracts each element of A from B.
+
+   2.nce_loss(inputs, weights, biases, labels, sample, unigram_prob)
+
+   -Inputs: inputs - Embeddings for context words with dimension as [batch_size, embedding_size] , weights - Weights for nce loss with dimension as [Vocabulary, embedding_size], biases - Biases for nce loss with dimension as [Vocabulary, 1]. labels: Word_ids for predicting words with dimension as [batch_size, 1], samples: Word_ids for negative samples with dimension as [num_sampled], unigram_prob: Unigram probabilitity with dimension is [Vocabulary].
+   -Converted the unigram_prob list given to a tensor and use tf.nn.embedding_lookup to find the probability of negative words using samples and probability of true outer word using labels.
+   -Computed outer word embeddings using nce_weights and labels. Similarly, computed noise word embeddings using nce_weights and samples
+   -Computed bias embeddings of true words and negative words. Performed a transpose and tile operation on the bias vector for its dimensionality to match for further addition.
+   -Performed a transpose of the embeddings_noise_words for its dimension to match for its multiplication with context words.
+   -After computing all of the above, performed numerical operations to calculate A and B according to the formula for NCE Loss and returned tf.scalar_mul(-1, tf.add(A, B))
+
+****************************************************************************************************************************************************************
+
+word_analogy.py - Evaluates relation between pair of words
+ -Finds the most illustrative and least illustrative pair for all inputs given in the word_analogy_dev.txt
+ -Used spatial.distance.cosine to find the word vectors having maximum and minimum distances
+ -Then used Similarity = 1 - Distance to print result in the output file word_analogy_nce.txt (for nce model)
+ -The generated file should be deleted after every iteration as it picks up a model file from the model folder
+
+
+****************************************************************************************************************************************************************
